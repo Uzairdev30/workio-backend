@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, VerifyEmailDto, ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto, RefreshTokenDto } from './dto/auth.dto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -43,4 +44,11 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard) @Get('me') @ApiBearerAuth() @ApiOperation({ summary: 'Get current user' })
   getMe(@CurrentUser() user: any) { return this.authService.getMe(user._id.toString()); }
+
+  @UseGuards(JwtAuthGuard) @Patch('profile') @ApiBearerAuth() @ApiOperation({ summary: 'Update profile' })
+  updateProfile(@CurrentUser() user: any, @Body() dto: any) { return this.authService.updateProfile(user._id.toString(), dto); }
+
+  @UseGuards(JwtAuthGuard) @Post('avatar') @ApiBearerAuth() @ApiOperation({ summary: 'Upload avatar' })
+  @UseInterceptors(FileInterceptor('avatar'))
+  uploadAvatar(@CurrentUser() user: any, @UploadedFile() file: any) { return this.authService.uploadAvatar(user._id.toString(), file); }
 }

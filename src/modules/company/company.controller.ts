@@ -44,6 +44,12 @@ export class CompanyController {
   @Patch('employees/:id/deactivate') @Roles(UserRole.ADMIN, UserRole.HR_MANAGER)
   deactivate(@CurrentUser() user: any, @Param('id') id: string) { return this.service.deactivateEmployee(user.companyId.toString(), id); }
 
+  @Delete('employees/:id') @Roles(UserRole.ADMIN, UserRole.HR_MANAGER)
+  deleteEmployee(@CurrentUser() user: any, @Param('id') id: string) { return this.service.deactivateEmployee(user.companyId.toString(), id); }
+
+  @Get('employees/:id') @Roles(UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_MANAGER)
+  getEmployee(@CurrentUser() user: any, @Param('id') id: string) { return this.service.getEmployeeById(user.companyId.toString(), id); }
+
   @Get('departments')
   getDepts(@CurrentUser() user: any) { return this.service.getDepartments(user.companyId.toString()); }
 

@@ -1,0 +1,88 @@
+version: '3.9'
+
+services:
+  # ─── NestJS API ─────────────────────────────────
+  api:
+    build:
+      context: .
+      target: production
+    container_name: workio-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/workio
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - workio-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ─── MongoDB ────────────────────────────────────
+  mongo:
+    image: mongo:7-jammy
+    container_name: workio-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: workio
+    volumes:
+      - mongo-data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/init.js:ro
+    networks:
+      - workio-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ─── Redis ──────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: workio-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - workio-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Nginx Reverse Proxy ────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: workio-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - workio-net
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  workio-net:
+    driver: bridge

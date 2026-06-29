@@ -129,6 +129,14 @@ export class CompanyService {
     return { message: 'Employee deactivated' };
   }
 
+  async getEmployeeById(companyId: string, employeeId: string) {
+    const employee = await this.userModel.findOne({ _id: new Types.ObjectId(employeeId), companyId: new Types.ObjectId(companyId) })
+      .select('-password -refreshTokens')
+      .lean();
+    if (!employee) throw new NotFoundException('Employee not found');
+    return { message: 'Employee fetched', data: employee };
+  }
+
   async createDepartment(companyId: string, dto: CreateDepartmentDto) {
     const dept = await this.deptModel.create({ companyId: new Types.ObjectId(companyId), ...dto, managerId: dto.managerId ? new Types.ObjectId(dto.managerId) : undefined });
     return { message: 'Department created', data: dept };

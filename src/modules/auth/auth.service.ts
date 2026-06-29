@@ -194,4 +194,27 @@ export class AuthService {
     if (!user) throw new NotFoundException('User not found');
     return { message: 'Profile fetched', data: user };
   }
+
+  async updateProfile(userId: string, dto: { firstName?: string; lastName?: string; phone?: string; timezone?: string }) {
+    const allowed = ['firstName', 'lastName', 'phone', 'timezone'];
+    const update: Record<string, any> = {};
+    for (const key of allowed) {
+      if (dto[key] !== undefined) update[key] = dto[key];
+    }
+    const user = await this.userModel.findByIdAndUpdate(userId, update, { new: true })
+      .select('-passwordHash -refreshTokenHash -lockUntil -failedLoginAttempts')
+      .lean();
+    if (!user) throw new NotFoundException('User not found');
+    return { message: 'Profile updated', data: user };
+  }
+
+  async uploadAvatar(userId: string, file: any) {
+    if (!file) throw new BadRequestException('No file provided');
+    // In production, upload to S3/Cloudinary. For now, store filename.
+    const avatarUrl = `/uploads/avatars/${file.filename || file.originalname}`;
+    const user = await this.userModel.findByIdAndUpdate(userId, { avatar: avatarUrl }, { new: true })
+      .select('-passwordHash -refreshTokenHash -lockUntil -failedLoginAttempts')
+      .lean();
+    return { message: 'Avatar updated', data: { avatarUrl, user } };
+  }
 }
