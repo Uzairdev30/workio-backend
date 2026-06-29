@@ -35,6 +35,15 @@ export class CompanyController {
   @Public() @Post('accept-invite')
   acceptInvite(@Body() dto: AcceptInviteDto) { return this.service.acceptInvite(dto); }
 
+  @Post('employees') @Roles(UserRole.ADMIN, UserRole.HR_MANAGER)
+  @ApiOperation({ summary: 'Add employee directly (sends credentials via email)' })
+  addEmployee(@CurrentUser() user: any, @Body() body: {
+    firstName: string; lastName: string; email: string; role: string;
+    departmentId?: string; teamId?: string; phone?: string;
+  }) {
+    return this.service.addEmployee(user.companyId.toString(), body as any);
+  }
+
   @Get('employees') @Roles(UserRole.ADMIN, UserRole.HR_MANAGER, UserRole.DEPARTMENT_MANAGER)
   getEmployees(@CurrentUser() user: any, @Query() query: PaginationDto & { search?: string; role?: string }) { return this.service.getEmployees(user.companyId.toString(), query); }
 

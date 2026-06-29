@@ -44,6 +44,15 @@ export class MailService {
     await this.sendMail({ to, subject: `You're invited to join ${companyName} on Workio`, template: 'invite', context: { inviterName, companyName, inviteLink, role } });
   }
 
+  async sendWelcomeCredentials(to: string, name: string, companyName: string, password: string, loginUrl: string) {
+    await this.sendMail({
+      to,
+      subject: `Welcome to ${companyName} — Your Workio Login Credentials`,
+      template: 'welcome-credentials',
+      context: { name, companyName, email: to, password, loginUrl },
+    });
+  }
+
   async sendEodReminder(to: string, name: string, deadline: string) {
     await this.sendMail({ to, subject: 'Reminder: Submit your EOD Report', template: 'eod-reminder', context: { name, deadline } });
   }

@@ -121,7 +121,66 @@ export class CompanyService {
     return { message: 'Employees fetched', data: paginate(data, total, page, limit) };
   }
 
+  async addEmployee(companyId: string, dto: {
+    firstName: string; lastName: string; email: string; role: UserRole;
+    departmentId?: string; teamId?: string; phone?: string;
+  }) {
+    /* ── admin singleton guard ── */
+    if (dto.role === UserRole.ADMIN) {
+      throw new BadRequestException('A company can only have one admin. The original admin account cannot be replaced.');
+    }
+
+    const existing = await this.userModel.findOne({ email: dto.email.toLowerCase() });
+    if (existing) throw new BadRequestException('This email is already registered');
+
+    /* generate a readable temporary password */
+    const tempPassword = `Workio@${Math.random().toString(36).slice(2, 8).toUpperCase()}${Math.floor(10 + Math.random() * 90)}`;
+    const passwordHash = await argon2.hash(tempPassword);
+    const empCount = await this.userModel.countDocuments({ companyId: new Types.ObjectId(companyId) });
+    const company  = await this.companyModel.findById(companyId).lean();
+
+    const user = await this.userModel.create({
+      companyId:       new Types.ObjectId(companyId),
+      role:            dto.role,
+      firstName:       dto.firstName,
+      lastName:        dto.lastName,
+      email:           dto.email.toLowerCase(),
+      phone:           dto.phone,
+      passwordHash,
+      isEmailVerified: true,
+      isActive:        true,
+    });
+
+    await this.profileModel.create({
+      userId:       user._id,
+      companyId:    new Types.ObjectId(companyId),
+      departmentId: dto.departmentId ? new Types.ObjectId(dto.departmentId) : undefined,
+      teamId:       dto.teamId       ? new Types.ObjectId(dto.teamId)       : undefined,
+      employeeId:   `EMP-${String(empCount + 1).padStart(3, '0')}`,
+    });
+
+    /* send credentials email */
+    const loginUrl = this.config.get('APP_URL') + '/login';
+    try {
+      await this.mailService.sendWelcomeCredentials(
+        dto.email, `${dto.firstName} ${dto.lastName}`,
+        company?.name ?? 'Your Company', tempPassword, loginUrl,
+      );
+    } catch (_) { /* non-fatal: credentials already created */ }
+
+    return { message: 'Employee added and credentials sent via email', data: { email: user.email, employeeId: `EMP-${String(empCount + 1).padStart(3, '0')}` } };
+  }
+
   async updateEmployeeRole(companyId: string, employeeId: string, role: UserRole) {
+    /* prevent assigning admin to anyone else */
+    if (role === UserRole.ADMIN) {
+      throw new BadRequestException('Cannot assign admin role. A company can only have one admin.');
+    }
+    /* prevent removing the original admin */
+    const target = await this.userModel.findOne({ _id: new Types.ObjectId(employeeId), companyId: new Types.ObjectId(companyId) }).lean();
+    if (target?.role === UserRole.ADMIN) {
+      throw new BadRequestException('Cannot change the role of the company admin.');
+    }
     await this.userModel.findOneAndUpdate({ _id: new Types.ObjectId(employeeId), companyId: new Types.ObjectId(companyId) }, { role });
     return { message: 'Role updated' };
   }

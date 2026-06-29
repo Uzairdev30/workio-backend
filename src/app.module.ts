@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from './config/config.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -20,11 +21,14 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { ConfigService } from '@nestjs/config';
+import { SeederService } from './seeder.service';
+import { User, UserSchema } from './database/schemas/user.schema';
 
 @Module({
   imports: [
     ConfigModule,
     DatabaseModule,
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     RedisModule,
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     BullModule.forRootAsync({
@@ -61,6 +65,7 @@ import { ConfigService } from '@nestjs/config';
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    SeederService,
   ],
 })
 export class AppModule {}
