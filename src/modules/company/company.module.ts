@@ -7,6 +7,7 @@ import { User, UserSchema } from '../../database/schemas/user.schema';
 import { Department, DepartmentSchema } from '../../database/schemas/department.schema';
 import { Team, TeamSchema } from '../../database/schemas/team.schema';
 import { EmployeeProfile, EmployeeProfileSchema } from '../../database/schemas/employee-profile.schema';
+import { CustomRole, CustomRoleSchema } from '../../database/schemas/custom-role.schema';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EmployeeProfile, EmployeeProfileSchema } from '../../database/schemas/e
       { name: Department.name, schema: DepartmentSchema },
       { name: Team.name, schema: TeamSchema },
       { name: EmployeeProfile.name, schema: EmployeeProfileSchema },
+      { name: CustomRole.name, schema: CustomRoleSchema },
     ]),
   ],
   controllers: [CompanyController],

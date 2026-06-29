@@ -8,6 +8,7 @@ import { User, UserDocument, UserRole } from '../../database/schemas/user.schema
 import { Department, DepartmentDocument } from '../../database/schemas/department.schema';
 import { Team, TeamDocument } from '../../database/schemas/team.schema';
 import { EmployeeProfile, EmployeeProfileDocument } from '../../database/schemas/employee-profile.schema';
+import { CustomRole, CustomRoleDocument } from '../../database/schemas/custom-role.schema';
 import { RedisService } from '../../redis/redis.service';
 import { MailService } from '../../mail/mail.service';
 import { InviteUserDto, AcceptInviteDto, UpdateCompanyDto, UpdateCompanySettingsDto, CreateDepartmentDto, UpdateDepartmentDto, CreateTeamDto, UpdateTeamDto } from './dto/company.dto';
@@ -22,6 +23,7 @@ export class CompanyService {
     @InjectModel(Department.name) private deptModel: Model<DepartmentDocument>,
     @InjectModel(Team.name) private teamModel: Model<TeamDocument>,
     @InjectModel(EmployeeProfile.name) private profileModel: Model<EmployeeProfileDocument>,
+    @InjectModel(CustomRole.name) private roleModel: Model<CustomRoleDocument>,
     private redisService: RedisService,
     private mailService: MailService,
     private config: ConfigService,
@@ -177,5 +179,30 @@ export class CompanyService {
   async deleteTeam(companyId: string, teamId: string) {
     await this.teamModel.findOneAndUpdate({ _id: new Types.ObjectId(teamId), companyId: new Types.ObjectId(companyId) }, { isActive: false });
     return { message: 'Team deleted' };
+  }
+
+  /* ─── Custom Roles ─── */
+  async getRoles(companyId: string) {
+    const roles = await this.roleModel.find({ companyId: new Types.ObjectId(companyId) }).lean();
+    return { message: 'Roles fetched', data: roles };
+  }
+
+  async createRole(companyId: string, dto: { name: string; description?: string; permissions?: string[] }) {
+    const role = await this.roleModel.create({ companyId: new Types.ObjectId(companyId), ...dto });
+    return { message: 'Role created', data: role };
+  }
+
+  async updateRole(companyId: string, roleId: string, dto: { name?: string; description?: string; permissions?: string[] }) {
+    const role = await this.roleModel.findOneAndUpdate(
+      { _id: new Types.ObjectId(roleId), companyId: new Types.ObjectId(companyId) },
+      dto, { new: true }
+    ).lean();
+    if (!role) throw new NotFoundException('Role not found');
+    return { message: 'Role updated', data: role };
+  }
+
+  async deleteRole(companyId: string, roleId: string) {
+    await this.roleModel.findOneAndDelete({ _id: new Types.ObjectId(roleId), companyId: new Types.ObjectId(companyId) });
+    return { message: 'Role deleted' };
   }
 }

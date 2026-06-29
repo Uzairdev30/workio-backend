@@ -73,4 +73,21 @@ export class CompanyController {
 
   @Delete('teams/:id') @Roles(UserRole.ADMIN)
   deleteTeam(@CurrentUser() user: any, @Param('id') id: string) { return this.service.deleteTeam(user.companyId.toString(), id); }
+
+  /* ─── Custom Roles ─── */
+  @Get('roles')
+  getRoles(@CurrentUser() user: any) { return this.service.getRoles(user.companyId.toString()); }
+
+  @Post('roles') @Roles(UserRole.ADMIN)
+  createRole(@CurrentUser() user: any, @Body() body: { name: string; description?: string; permissions?: string[] }) {
+    return this.service.createRole(user.companyId.toString(), body);
+  }
+
+  @Patch('roles/:id') @Roles(UserRole.ADMIN)
+  updateRole_(@CurrentUser() user: any, @Param('id') id: string, @Body() body: { name?: string; description?: string; permissions?: string[] }) {
+    return this.service.updateRole(user.companyId.toString(), id, body);
+  }
+
+  @Delete('roles/:id') @Roles(UserRole.ADMIN)
+  deleteRole(@CurrentUser() user: any, @Param('id') id: string) { return this.service.deleteRole(user.companyId.toString(), id); }
 }
